@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SWEET17 · One bit beyond</title>
+<style>
+:root{color-scheme:dark;--bg:#101410;--panel:#171d17;--line:#303c2c;--muted:#95a38c;--ink:#e8efda;--acid:#d5f879;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--mono)}main{max-width:1440px;margin:auto;padding:34px 40px}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:25px;margin-bottom:25px}.eyebrow,.label{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}h1{font-size:52px;letter-spacing:-4px;line-height:1;margin:12px 0}h1 span{color:var(--acid)}.subtitle{color:var(--muted);margin:12px 0 0}.badge{border:1px solid var(--line);padding:12px 18px;color:var(--acid);font-size:12px}.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:22px}button,select,input{font:inherit;border:1px solid var(--line);color:var(--ink);background:#20281e;padding:9px 13px;border-radius:3px}button{cursor:pointer}button:hover{border-color:var(--acid)}button:disabled{opacity:.45;cursor:default}button.primary{background:var(--acid);border-color:var(--acid);color:#18200d;font-weight:bold}select{max-width:100%}.spacer{flex:1}.status{font-size:12px;color:var(--acid)}.layout{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}.panel{border:1px solid var(--line);background:var(--panel);min-width:0}.panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);gap:12px}.panel-head h2{font:11px var(--mono);letter-spacing:2px;text-transform:uppercase;margin:0;color:var(--muted)}.hint{font-size:11px;color:var(--muted)}textarea{display:block;width:100%;height:410px;resize:vertical;border:0;background:#131913;color:var(--ink);padding:18px;font:13px/1.65 var(--mono);tab-size:2;outline:none}textarea:focus{box-shadow:inset 2px 0 var(--acid)}.editor-foot{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}.registers{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}.reg{background:var(--panel);padding:12px 14px}.reg small{display:block;color:var(--muted);font-size:10px}.reg strong{font-size:20px;font-weight:400;letter-spacing:1px}.reg.changed strong{color:var(--acid)}.machine{padding:13px 16px;display:flex;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--line);font-size:12px}.machine b{color:var(--acid);font-weight:400}.next{padding:12px 16px;min-height:43px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.output{margin-top:20px}pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.console{padding:16px;min-height:110px;max-height:210px;overflow:auto;color:var(--acid);font-size:13px}.lower{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}.screen{padding:18px;display:flex;align-items:center;justify-content:center;background:#0c100c}canvas{width:100%;max-width:480px;image-rendering:pixelated;aspect-ratio:2;display:block;background:#080d08}.memory{padding:14px 16px;font-size:11px;line-height:1.9;color:var(--muted);overflow:auto}.memory-address{width:96px;padding:4px 7px;font-size:11px}.docs{border-top:1px solid var(--line);margin-top:30px;padding-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:35px;color:var(--muted);font-size:12px}.docs h3{font-size:12px;color:var(--ink);font-weight:400}.docs code{color:var(--acid)}footer{margin-top:28px;font-size:10px;letter-spacing:1px;color:var(--muted)}.error{color:#ffac91}@media(max-width:850px){main{padding:22px 18px}.layout,.lower,.docs{grid-template-columns:1fr}h1{font-size:43px}.badge{display:none}.spacer{display:none}.reg{padding:10px}.reg strong{font-size:18px}}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="eyebrow">A tiny imaginary machine / est. 2026</div><h1>SWEET<span>17</span></h1><p class="subtitle">One bit beyond. A little virtual computer with a lot of nerve.</p></div><div class="badge">17 BITS<br>131,072 POSSIBILITIES</div></header>
+<div class="toolbar"><select id="demo" aria-label="Demo program"><option value="fib">01 / Fibonacci machine</option><option value="wrap">02 / The seventeenth bit</option><option value="pixels">03 / XOR postcard</option></select><button id="run" class="primary">▶ Run</button><button id="step">Step →</button><button id="reset">↺ Reset</button><span class="spacer"></span><label class="hint">Pace <select id="pace"><option value="1">1 / frame</option><option value="32" selected>32 / frame</option><option value="8000">8K / frame</option></select></label><span id="status" class="status" role="status">READY</span></div>
+<div class="layout">
+<section class="panel"><div class="panel-head"><h2>Program / editable assembly</h2><span class="hint">; comments · labels:</span></div><textarea id="source" aria-label="Assembly program" spellcheck="false"></textarea><div class="editor-foot">Edit, then Run or Step to assemble. Reset rewinds the machine.</div></section>
+<div><section class="panel"><div class="panel-head"><h2>The register file</h2><span class="hint">hex / 00000–1FFFF</span></div><div id="registers" class="registers"></div><div class="machine"><span>PC <b id="pc">0000</b></span><span>Z <b id="zero">0</b></span><span>C <b id="carry">0</b></span><span>Ticks <b id="ticks">0</b></span></div><div id="next" class="next"></div></section><section class="panel output"><div class="panel-head"><h2>Output port</h2><span class="hint">OUT → decimal words</span></div><pre id="console" class="console" aria-live="polite"></pre></section></div>
+</div>
+<div class="lower"><section class="panel"><div class="panel-head"><h2>Memory-mapped postcard</h2><span class="hint">32 × 16 / @00100</span></div><div class="screen"><canvas id="screen" width="320" height="160" aria-label="Memory-mapped 32 by 16 pixel display"></canvas></div></section><section class="panel"><div class="panel-head"><h2>Memory / 17-bit words</h2><label class="hint">@ <input id="address" class="memory-address" value="0x100" aria-label="Memory start address"></label></div><pre id="memory" class="memory"></pre></section></div>
+<div class="docs"><section><h3>Small machine. Extra bit.</h3>Inspired by Steve Wozniak’s SWEET16, not a compatible emulator. Sixteen 17-bit registers, 131,072 word-addressed memory cells, and unsigned arithmetic that wraps at 131,072. Instructions live in a separate program store. R0 is ordinary, not a special accumulator. No 6502 required.</section><section><h3>The pocket instruction set</h3><code>LD R0, 17</code> · <code>LD R0, [R1]</code> · <code>ST R0, [R1]</code><br><code>ADD SUB MUL AND XOR SHL SHR CMP</code> Rn, value<br><code>INC DEC</code> Rn · <code>JMP JZ JNZ JC JNC</code> label<br><code>OUT</code> value · <code>NOP HALT</code><br>Values: register, decimal, 0x hex, 0b binary, or [address]. Arithmetic updates Z and overflow/borrow C; CMP sets Z on equality and C on unsigned ≥. Shift counts are 0–17. LD updates Z, preserves C. Logic clears C. Stores, jumps and output preserve flags. Pixel color uses each word’s low 8 bits.</section></div>
+<footer>NOT AUTHENTIC. JUST SWEET. / TYPESCRIPT INSIDE · NO NETWORK DEPENDENCIES</footer>
+</main>
+<script id="sweet17-source" type="text/typescript">
+const MASK = 0x1ffff;
+const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+const hex = (n: number, width = 5) => n.toString(16).toUpperCase().padStart(width, '0');
+const demos: Record<string, string> = {
+  fib: `; Eighteen Fibonacci numbers, in 17 bits.
+; R0 = current, R1 = next, R2 = temporary
+; R3 = numbers remaining
+
+        LD R0, 0
+        LD R1, 1
+        LD R3, 18
+
+loop:   OUT R0
+        LD R2, R0
+        ADD R2, R1
+        LD R0, R1
+        LD R1, R2
+        DEC R3
+        JNZ loop
+        HALT`,
+  wrap: `; A 16-bit machine stops at 65,535.
+; We have a little more room.
+
+        LD R0, 65535
+        OUT R0
+        INC R0
+        OUT R0       ; 65536: the extra bit!
+
+        LD R1, 0x1FFFF
+        OUT R1       ; 131071: all seventeen bits
+        INC R1       ; wraps to zero, C = 1
+        JC wrapped
+        HALT
+
+wrapped:
+        OUT R1       ; 0
+        LD R2, 17
+        OUT R2
+        HALT`,
+  pixels: `; Paint 512 memory-mapped pixels.
+; R0 = pixel index, R1 = address
+; R2 = x, R3 = y, R4 = color
+
+        LD R0, 0
+        LD R1, 0x100
+
+pixel:  LD R2, R0
+        AND R2, 31
+        LD R3, R0
+        SHR R3, 5
+        LD R4, R2
+        XOR R4, R3
+        MUL R4, 8
+        ST R4, [R1]
+        INC R1
+        INC R0
+        CMP R0, 512
+        JNZ pixel
+        OUT R0
+        HALT`
+};
+type Instruction = { op: string; args: string[]; line: number; text: string };
+let program: Instruction[] = [], labels: Record<string, number> = {};
+const regs = new Uint32Array(16), memory = new Uint32Array(1 << 17);
+let pc = 0, zero = false, carry = false, ticks = 0, halted = false, running = false;
+let assembledSource = '', output: number[] = [], message = 'READY';
+const source = $<HTMLTextAreaElement>('source');
+const signatures: Record<string, number> = { LD:2, ST:2, ADD:2, SUB:2, MUL:2, AND:2, XOR:2, SHL:2, SHR:2, CMP:2, INC:1, DEC:1, JMP:1, JZ:1, JNZ:1, JC:1, JNC:1, OUT:1, NOP:0, HALT:0 };
+const regIndex = (s: string) => {
+  if (!/^R(?:[0-9]|1[0-5])$/i.test(s)) throw Error(`Expected R0–R15, got "${s}"`);
+  return Number(s.slice(1));
+};
+function literal(s: string): number {
+  if (!/^(?:-?\d+|0x[0-9a-f]+|0b[01]+)$/i.test(s)) throw Error(`Invalid value "${s}"`);
+  const n = Number(s);
+  if (!Number.isSafeInteger(n) || n < -131072 || n > MASK) throw Error(`Value outside 17-bit range: ${s}`);
+  return n & MASK;
+}
+function validateValue(s: string, indirect = true): void {
+  if (indirect && /^\[.+\]$/.test(s)) return validateValue(s.slice(1, -1), false);
+  if (/^R/i.test(s)) { regIndex(s); return; }
+  literal(s);
+}
+function value(s: string): number {
+  if (s.startsWith('[')) return memory[value(s.slice(1, -1))];
+  return /^R/i.test(s) ? regs[regIndex(s)] : literal(s);
+}
+function assemble(): void {
+  program = []; labels = {};
+  source.value.split('\n').forEach((raw, index) => {
+    let text = raw.split(';')[0].trim();
+    if (!text) return;
+    const label = text.match(/^([a-z_]\w*):/i);
+    if (label) {
+      const name = label[1].toUpperCase();
+      if (Object.hasOwn(labels, name)) throw Error(`Line ${index + 1}: duplicate label ${name}`);
+      labels[name] = program.length;
+      text = text.slice(label[0].length).trim();
+    }
+    if (!text) return;
+    const [op, ...args] = text.toUpperCase().split(/[\s,]+/);
+    program.push({op, args, line:index + 1, text});
+  });
+  for (const ins of program) {
+    try {
+      const {op, args} = ins;
+      if (!Object.hasOwn(signatures, op)) throw Error(`Unknown instruction ${op}`);
+      if (args.length !== signatures[op]) throw Error(`${op} expects ${signatures[op]} operands`);
+      if (op.startsWith('J')) {
+        if (!Object.hasOwn(labels, args[0])) throw Error(`Unknown label ${args[0]}`);
+      } else if (op === 'OUT') validateValue(args[0]);
+      else if (args.length) {
+        regIndex(args[0]);
+        if (op === 'ST') {
+          if (!/^\[.+\]$/.test(args[1])) throw Error('ST destination must be [address] or [register]');
+          validateValue(args[1].slice(1, -1), false);
+        } else if (args.length === 2) validateValue(args[1]);
+      }
+    } catch (e) { throw Error(`Line ${ins.line}: ${(e as Error).message}`); }
+  }
+  assembledSource = source.value;
+}
+function reset(): void {
+  running = false; regs.fill(0); memory.fill(0); pc = 0; zero = false; carry = false;
+  ticks = 0; halted = false; output = []; message = 'READY';
+  try { assemble(); } catch (e) { halted = true; message = (e as Error).message; }
+  render();
+}
+function step(): void {
+  if (halted) return;
+  if (pc >= program.length) { halted = true; message = 'END OF PROGRAM'; return; }
+  const {op, args:a, line} = program[pc++];
+  ticks++;
+  try {
+    if (op === 'HALT') { halted = true; message = 'HALTED'; return; }
+    if (op === 'NOP') return;
+    if (op === 'OUT') { output.push(value(a[0])); if (output.length > 256) output.shift(); return; }
+    if (op.startsWith('J')) {
+      if (op === 'JMP' || op === 'JZ' && zero || op === 'JNZ' && !zero || op === 'JC' && carry || op === 'JNC' && !carry) pc = labels[a[0]];
+      return;
+    }
+    const r = regIndex(a[0]), x = regs[r];
+    if (op === 'ST') { memory[value(a[1].slice(1, -1))] = x; return; }
+    const y = a.length > 1 ? value(a[1]) : 1;
+    if (op === 'CMP') { zero = x === y; carry = x >= y; return; }
+    let result = x;
+    switch (op) {
+      case 'LD': result = y; break;
+      case 'ADD': case 'INC': result = x + y; break;
+      case 'SUB': case 'DEC': result = x - y; break;
+      case 'MUL': result = x * y; break;
+      case 'AND': result = x & y; break;
+      case 'XOR': result = x ^ y; break;
+      case 'SHL': case 'SHR':
+        if (y > 17) throw Error('Shift count must be 0–17');
+        result = op === 'SHL' ? x * 2 ** y : Math.floor(x / 2 ** y);
+        break;
+    }
+    if (op !== 'LD') carry = op === 'SHR' ? x % 2 ** y !== 0 : result > MASK || result < 0;
+    regs[r] = result & MASK; zero = regs[r] === 0;
+  } catch (e) { halted = true; message = `Line ${line}: ${(e as Error).message}`; }
+}
+const regElements: HTMLElement[] = [];
+for (let i = 0; i < 16; i++) {
+  const el = document.createElement('div'); el.className = 'reg';
+  el.innerHTML = `<small>R${i}</small><strong>00000</strong>`;
+  $('registers').append(el); regElements.push(el);
+}
+const context = $<HTMLCanvasElement>('screen').getContext('2d')!;
+function render(): void {
+  regElements.forEach((el, i) => {
+    el.querySelector('strong')!.textContent = hex(regs[i]);
+    el.classList.toggle('changed', regs[i] !== 0);
+    el.title = `R${i} = ${regs[i]} decimal / ${regs[i].toString(2).padStart(17, '0')} binary`;
+  });
+  $('pc').textContent = hex(pc, 4); $('zero').textContent = Number(zero).toString();
+  $('carry').textContent = Number(carry).toString(); $('ticks').textContent = ticks.toLocaleString();
+  $('status').textContent = running ? 'RUNNING' : message;
+  $('status').classList.toggle('error', /Line|label/.test(message));
+  $('run').textContent = running ? 'Ⅱ Pause' : '▶ Run';
+  $<HTMLButtonElement>('step').disabled = running;
+  const next = program[pc];
+  $('next').textContent = halted ? '■ Machine stopped. Reset or edit to start again.' : next ? `NEXT / L${next.line}  ${next.text}` : 'NEXT / end of program';
+  $('console').textContent = output.length ? output.join('  ') : 'Waiting for OUT…';
+  const address = Number($<HTMLInputElement>('address').value);
+  if (Number.isInteger(address) && address >= 0 && address <= MASK) {
+    const rows = [];
+    for (let i = 0; i < 48; i += 6) rows.push(`${hex((address + i) & MASK)}  ${Array.from({length:6}, (_, j) => hex(memory[(address + i + j) & MASK])).join(' ')}`);
+    $('memory').textContent = rows.join('\n');
+  } else $('memory').textContent = 'Enter an address from 0 to 0x1FFFF.';
+  for (let i = 0; i < 512; i++) {
+    const v = memory[0x100 + i] & 255;
+    context.fillStyle = v ? `hsl(${65 + v / 4} 70% ${12 + v / 4}%)` : '#080d08';
+    context.fillRect(i % 32 * 10, Math.floor(i / 32) * 10, 10, 10);
+  }
+}
+function frame(): void {
+  if (running) {
+    const budget = Number($<HTMLSelectElement>('pace').value);
+    for (let i = 0; i < budget && !halted; i++) step();
+    if (halted) running = false;
+    render();
+  }
+  requestAnimationFrame(frame);
+}
+$('run').onclick = () => {
+  if (running) { running = false; message = 'PAUSED'; render(); return; }
+  if (source.value !== assembledSource || halted) reset();
+  if (!halted) { running = true; message = 'RUNNING'; render(); }
+};
+$('step').onclick = () => {
+  if (source.value !== assembledSource) reset();
+  step(); if (!halted) message = 'PAUSED'; render();
+};
+$('reset').onclick = reset;
+$('demo').onchange = () => { source.value = demos[$<HTMLSelectElement>('demo').value]; reset(); };
+$('address').oninput = render;
+source.value = demos.fib;
+reset(); requestAnimationFrame(frame);
+</script>
+<!-- Compiled from the embedded TypeScript by node build.mjs. -->
+<script id="sweet17-runtime">
+"use strict";
+const MASK = 0x1ffff;
+const $ = (id) => document.getElementById(id);
+const hex = (n, width = 5) => n.toString(16).toUpperCase().padStart(width, '0');
+const demos = {
+    fib: `; Eighteen Fibonacci numbers, in 17 bits.
+; R0 = current, R1 = next, R2 = temporary
+; R3 = numbers remaining
+
+        LD R0, 0
+        LD R1, 1
+        LD R3, 18
+
+loop:   OUT R0
+        LD R2, R0
+        ADD R2, R1
+        LD R0, R1
+        LD R1, R2
+        DEC R3
+        JNZ loop
+        HALT`,
+    wrap: `; A 16-bit machine stops at 65,535.
+; We have a little more room.
+
+        LD R0, 65535
+        OUT R0
+        INC R0
+        OUT R0       ; 65536: the extra bit!
+
+        LD R1, 0x1FFFF
+        OUT R1       ; 131071: all seventeen bits
+        INC R1       ; wraps to zero, C = 1
+        JC wrapped
+        HALT
+
+wrapped:
+        OUT R1       ; 0
+        LD R2, 17
+        OUT R2
+        HALT`,
+    pixels: `; Paint 512 memory-mapped pixels.
+; R0 = pixel index, R1 = address
+; R2 = x, R3 = y, R4 = color
+
+        LD R0, 0
+        LD R1, 0x100
+
+pixel:  LD R2, R0
+        AND R2, 31
+        LD R3, R0
+        SHR R3, 5
+        LD R4, R2
+        XOR R4, R3
+        MUL R4, 8
+        ST R4, [R1]
+        INC R1
+        INC R0
+        CMP R0, 512
+        JNZ pixel
+        OUT R0
+        HALT`
+};
+let program = [], labels = {};
+const regs = new Uint32Array(16), memory = new Uint32Array(1 << 17);
+let pc = 0, zero = false, carry = false, ticks = 0, halted = false, running = false;
+let assembledSource = '', output = [], message = 'READY';
+const source = $('source');
+const signatures = { LD: 2, ST: 2, ADD: 2, SUB: 2, MUL: 2, AND: 2, XOR: 2, SHL: 2, SHR: 2, CMP: 2, INC: 1, DEC: 1, JMP: 1, JZ: 1, JNZ: 1, JC: 1, JNC: 1, OUT: 1, NOP: 0, HALT: 0 };
+const regIndex = (s) => {
+    if (!/^R(?:[0-9]|1[0-5])$/i.test(s))
+        throw Error(`Expected R0–R15, got "${s}"`);
+    return Number(s.slice(1));
+};
+function literal(s) {
+    if (!/^(?:-?\d+|0x[0-9a-f]+|0b[01]+)$/i.test(s))
+        throw Error(`Invalid value "${s}"`);
+    const n = Number(s);
+    if (!Number.isSafeInteger(n) || n < -131072 || n > MASK)
+        throw Error(`Value outside 17-bit range: ${s}`);
+    return n & MASK;
+}
+function validateValue(s, indirect = true) {
+    if (indirect && /^\[.+\]$/.test(s))
+        return validateValue(s.slice(1, -1), false);
+    if (/^R/i.test(s)) {
+        regIndex(s);
+        return;
+    }
+    literal(s);
+}
+function value(s) {
+    if (s.startsWith('['))
+        return memory[value(s.slice(1, -1))];
+    return /^R/i.test(s) ? regs[regIndex(s)] : literal(s);
+}
+function assemble() {
+    program = [];
+    labels = {};
+    source.value.split('\n').forEach((raw, index) => {
+        let text = raw.split(';')[0].trim();
+        if (!text)
+            return;
+        const label = text.match(/^([a-z_]\w*):/i);
+        if (label) {
+            const name = label[1].toUpperCase();
+            if (Object.hasOwn(labels, name))
+                throw Error(`Line ${index + 1}: duplicate label ${name}`);
+            labels[name] = program.length;
+            text = text.slice(label[0].length).trim();
+        }
+        if (!text)
+            return;
+        const [op, ...args] = text.toUpperCase().split(/[\s,]+/);
+        program.push({ op, args, line: index + 1, text });
+    });
+    for (const ins of program) {
+        try {
+            const { op, args } = ins;
+            if (!Object.hasOwn(signatures, op))
+                throw Error(`Unknown instruction ${op}`);
+            if (args.length !== signatures[op])
+                throw Error(`${op} expects ${signatures[op]} operands`);
+            if (op.startsWith('J')) {
+                if (!Object.hasOwn(labels, args[0]))
+                    throw Error(`Unknown label ${args[0]}`);
+            }
+            else if (op === 'OUT')
+                validateValue(args[0]);
+            else if (args.length) {
+                regIndex(args[0]);
+                if (op === 'ST') {
+                    if (!/^\[.+\]$/.test(args[1]))
+                        throw Error('ST destination must be [address] or [register]');
+                    validateValue(args[1].slice(1, -1), false);
+                }
+                else if (args.length === 2)
+                    validateValue(args[1]);
+            }
+        }
+        catch (e) {
+            throw Error(`Line ${ins.line}: ${e.message}`);
+        }
+    }
+    assembledSource = source.value;
+}
+function reset() {
+    running = false;
+    regs.fill(0);
+    memory.fill(0);
+    pc = 0;
+    zero = false;
+    carry = false;
+    ticks = 0;
+    halted = false;
+    output = [];
+    message = 'READY';
+    try {
+        assemble();
+    }
+    catch (e) {
+        halted = true;
+        message = e.message;
+    }
+    render();
+}
+function step() {
+    if (halted)
+        return;
+    if (pc >= program.length) {
+        halted = true;
+        message = 'END OF PROGRAM';
+        return;
+    }
+    const { op, args: a, line } = program[pc++];
+    ticks++;
+    try {
+        if (op === 'HALT') {
+            halted = true;
+            message = 'HALTED';
+            return;
+        }
+        if (op === 'NOP')
+            return;
+        if (op === 'OUT') {
+            output.push(value(a[0]));
+            if (output.length > 256)
+                output.shift();
+            return;
+        }
+        if (op.startsWith('J')) {
+            if (op === 'JMP' || op === 'JZ' && zero || op === 'JNZ' && !zero || op === 'JC' && carry || op === 'JNC' && !carry)
+                pc = labels[a[0]];
+            return;
+        }
+        const r = regIndex(a[0]), x = regs[r];
+        if (op === 'ST') {
+            memory[value(a[1].slice(1, -1))] = x;
+            return;
+        }
+        const y = a.length > 1 ? value(a[1]) : 1;
+        if (op === 'CMP') {
+            zero = x === y;
+            carry = x >= y;
+            return;
+        }
+        let result = x;
+        switch (op) {
+            case 'LD':
+                result = y;
+                break;
+            case 'ADD':
+            case 'INC':
+                result = x + y;
+                break;
+            case 'SUB':
+            case 'DEC':
+                result = x - y;
+                break;
+            case 'MUL':
+                result = x * y;
+                break;
+            case 'AND':
+                result = x & y;
+                break;
+            case 'XOR':
+                result = x ^ y;
+                break;
+            case 'SHL':
+            case 'SHR':
+                if (y > 17)
+                    throw Error('Shift count must be 0–17');
+                result = op === 'SHL' ? x * 2 ** y : Math.floor(x / 2 ** y);
+                break;
+        }
+        if (op !== 'LD')
+            carry = op === 'SHR' ? x % 2 ** y !== 0 : result > MASK || result < 0;
+        regs[r] = result & MASK;
+        zero = regs[r] === 0;
+    }
+    catch (e) {
+        halted = true;
+        message = `Line ${line}: ${e.message}`;
+    }
+}
+const regElements = [];
+for (let i = 0; i < 16; i++) {
+    const el = document.createElement('div');
+    el.className = 'reg';
+    el.innerHTML = `<small>R${i}</small><strong>00000</strong>`;
+    $('registers').append(el);
+    regElements.push(el);
+}
+const context = $('screen').getContext('2d');
+function render() {
+    regElements.forEach((el, i) => {
+        el.querySelector('strong').textContent = hex(regs[i]);
+        el.classList.toggle('changed', regs[i] !== 0);
+        el.title = `R${i} = ${regs[i]} decimal / ${regs[i].toString(2).padStart(17, '0')} binary`;
+    });
+    $('pc').textContent = hex(pc, 4);
+    $('zero').textContent = Number(zero).toString();
+    $('carry').textContent = Number(carry).toString();
+    $('ticks').textContent = ticks.toLocaleString();
+    $('status').textContent = running ? 'RUNNING' : message;
+    $('status').classList.toggle('error', /Line|label/.test(message));
+    $('run').textContent = running ? 'Ⅱ Pause' : '▶ Run';
+    $('step').disabled = running;
+    const next = program[pc];
+    $('next').textContent = halted ? '■ Machine stopped. Reset or edit to start again.' : next ? `NEXT / L${next.line}  ${next.text}` : 'NEXT / end of program';
+    $('console').textContent = output.length ? output.join('  ') : 'Waiting for OUT…';
+    const address = Number($('address').value);
+    if (Number.isInteger(address) && address >= 0 && address <= MASK) {
+        const rows = [];
+        for (let i = 0; i < 48; i += 6)
+            rows.push(`${hex((address + i) & MASK)}  ${Array.from({ length: 6 }, (_, j) => hex(memory[(address + i + j) & MASK])).join(' ')}`);
+        $('memory').textContent = rows.join('\n');
+    }
+    else
+        $('memory').textContent = 'Enter an address from 0 to 0x1FFFF.';
+    for (let i = 0; i < 512; i++) {
+        const v = memory[0x100 + i] & 255;
+        context.fillStyle = v ? `hsl(${65 + v / 4} 70% ${12 + v / 4}%)` : '#080d08';
+        context.fillRect(i % 32 * 10, Math.floor(i / 32) * 10, 10, 10);
+    }
+}
+function frame() {
+    if (running) {
+        const budget = Number($('pace').value);
+        for (let i = 0; i < budget && !halted; i++)
+            step();
+        if (halted)
+            running = false;
+        render();
+    }
+    requestAnimationFrame(frame);
+}
+$('run').onclick = () => {
+    if (running) {
+        running = false;
+        message = 'PAUSED';
+        render();
+        return;
+    }
+    if (source.value !== assembledSource || halted)
+        reset();
+    if (!halted) {
+        running = true;
+        message = 'RUNNING';
+        render();
+    }
+};
+$('step').onclick = () => {
+    if (source.value !== assembledSource)
+        reset();
+    step();
+    if (!halted)
+        message = 'PAUSED';
+    render();
+};
+$('reset').onclick = reset;
+$('demo').onchange = () => { source.value = demos[$('demo').value]; reset(); };
+$('address').oninput = render;
+source.value = demos.fib;
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
