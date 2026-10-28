@@ -17,7 +17,7 @@
 <div><section class="panel"><div class="panel-head"><h2>The register file</h2><span class="hint">hex / 00000–1FFFF</span></div><div id="registers" class="registers"></div><div class="machine"><span>PC <b id="pc">0000</b></span><span>Z <b id="zero">0</b></span><span>C <b id="carry">0</b></span><span>Ticks <b id="ticks">0</b></span></div><div id="next" class="next"></div></section><section class="panel output"><div class="panel-head"><h2>Output port</h2><span class="hint">OUT → decimal words</span></div><pre id="console" class="console" aria-live="polite"></pre></section></div>
 </div>
 <div class="lower"><section class="panel"><div class="panel-head"><h2>Memory-mapped postcard</h2><span class="hint">32 × 16 / @00100</span></div><div class="screen"><canvas id="screen" width="320" height="160" aria-label="Memory-mapped 32 by 16 pixel display"></canvas></div></section><section class="panel"><div class="panel-head"><h2>Memory / 17-bit words</h2><label class="hint">@ <input id="address" class="memory-address" value="0x100" aria-label="Memory start address"></label></div><pre id="memory" class="memory"></pre></section></div>
-<div class="docs"><section><h3>Small machine. Extra bit.</h3>Inspired by Steve Wozniak’s SWEET16, not a compatible emulator. Sixteen 17-bit registers, 131,072 word-addressed memory cells, and unsigned arithmetic that wraps at 131,072. Instructions live in a separate program store. R0 is ordinary, not a special accumulator. No 6502 required.</section><section><h3>The pocket instruction set</h3><code>LD R0, 17</code> · <code>LD R0, [R1]</code> · <code>ST R0, [R1]</code><br><code>ADD SUB MUL AND XOR SHL SHR CMP</code> Rn, value<br><code>INC DEC</code> Rn · <code>JMP JZ JNZ JC JNC</code> label<br><code>OUT</code> value · <code>NOP HALT</code><br>Values: register, decimal, 0x hex, 0b binary, or [address]. Arithmetic updates Z and overflow/borrow C; CMP sets Z on equality and C on unsigned ≥. Shift counts are 0–17. LD updates Z, preserves C. Logic clears C. Stores, jumps and output preserve flags. Pixel color uses each word’s low 8 bits.</section></div>
+<div class="docs"><section><h3>Small machine. Extra bit.</h3>Inspired by <a href="https://en.wikipedia.org/wiki/SWEET16" style="color:inherit">Steve Wozniak’s SWEET16</a>, not a compatible emulator. Seventeen 17-bit registers (R0–R16), 131,072 word-addressed memory cells, and unsigned arithmetic that wraps at 131,072. Instructions live in a separate program store. R0 is ordinary, not a special accumulator. No 6502 required.</section><section><h3>The pocket instruction set</h3><code>LD R0, 17</code> · <code>LD R0, [R1]</code> · <code>ST R0, [R1]</code><br><code>ADD SUB MUL AND XOR SHL SHR CMP</code> Rn, value<br><code>INC DEC</code> Rn · <code>JMP JZ JNZ JC JNC</code> label<br><code>OUT</code> value · <code>NOP HALT</code><br>Values: register, decimal, 0x hex, 0b binary, or [address]. Arithmetic updates Z and overflow/borrow C; CMP sets Z on equality and C on unsigned ≥. Shift counts are 0–17. LD updates Z, preserves C. Logic clears C. Stores, jumps and output preserve flags. Pixel color uses each word’s low 8 bits.</section></div>
 <footer>NOT AUTHENTIC. JUST SWEET. / TYPESCRIPT INSIDE · NO NETWORK DEPENDENCIES</footer>
 </main>
 <script id="sweet17-source" type="text/typescript">
@@ -84,13 +84,13 @@ pixel:  LD R2, R0
 };
 type Instruction = { op: string; args: string[]; line: number; text: string };
 let program: Instruction[] = [], labels: Record<string, number> = {};
-const regs = new Uint32Array(16), memory = new Uint32Array(1 << 17);
+const regs = new Uint32Array(17), memory = new Uint32Array(1 << 17);
 let pc = 0, zero = false, carry = false, ticks = 0, halted = false, running = false;
 let assembledSource = '', output: number[] = [], message = 'READY';
 const source = $<HTMLTextAreaElement>('source');
 const signatures: Record<string, number> = { LD:2, ST:2, ADD:2, SUB:2, MUL:2, AND:2, XOR:2, SHL:2, SHR:2, CMP:2, INC:1, DEC:1, JMP:1, JZ:1, JNZ:1, JC:1, JNC:1, OUT:1, NOP:0, HALT:0 };
 const regIndex = (s: string) => {
-  if (!/^R(?:[0-9]|1[0-5])$/i.test(s)) throw Error(`Expected R0–R15, got "${s}"`);
+  if (!/^R(?:[0-9]|1[0-6])$/i.test(s)) throw Error(`Expected R0–R16, got "${s}"`);
   return Number(s.slice(1));
 };
 function literal(s: string): number {
@@ -184,7 +184,7 @@ function step(): void {
   } catch (e) { halted = true; message = `Line ${line}: ${(e as Error).message}`; }
 }
 const regElements: HTMLElement[] = [];
-for (let i = 0; i < 16; i++) {
+for (let i = 0; i < regs.length; i++) {
   const el = document.createElement('div'); el.className = 'reg';
   el.innerHTML = `<small>R${i}</small><strong>00000</strong>`;
   $('registers').append(el); regElements.push(el);
@@ -306,14 +306,14 @@ pixel:  LD R2, R0
         HALT`
 };
 let program = [], labels = {};
-const regs = new Uint32Array(16), memory = new Uint32Array(1 << 17);
+const regs = new Uint32Array(17), memory = new Uint32Array(1 << 17);
 let pc = 0, zero = false, carry = false, ticks = 0, halted = false, running = false;
 let assembledSource = '', output = [], message = 'READY';
 const source = $('source');
 const signatures = { LD: 2, ST: 2, ADD: 2, SUB: 2, MUL: 2, AND: 2, XOR: 2, SHL: 2, SHR: 2, CMP: 2, INC: 1, DEC: 1, JMP: 1, JZ: 1, JNZ: 1, JC: 1, JNC: 1, OUT: 1, NOP: 0, HALT: 0 };
 const regIndex = (s) => {
-    if (!/^R(?:[0-9]|1[0-5])$/i.test(s))
-        throw Error(`Expected R0–R15, got "${s}"`);
+    if (!/^R(?:[0-9]|1[0-6])$/i.test(s))
+        throw Error(`Expected R0–R16, got "${s}"`);
     return Number(s.slice(1));
 };
 function literal(s) {
@@ -488,7 +488,7 @@ function step() {
     }
 }
 const regElements = [];
-for (let i = 0; i < 16; i++) {
+for (let i = 0; i < regs.length; i++) {
     const el = document.createElement('div');
     el.className = 'reg';
     el.innerHTML = `<small>R${i}</small><strong>00000</strong>`;
